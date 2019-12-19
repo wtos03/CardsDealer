@@ -1,0 +1,255 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "playing card",
+            "intents": [
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.NavigateHomeIntent",
+                    "samples": []
+                },
+                {
+                    "name": "MoveIntent",
+                    "slots": [
+                        {
+                            "name": "Direction",
+                            "type": "DirectionType"
+                        },
+                        {
+                            "name": "Duration",
+                            "type": "AMAZON.NUMBER"
+                        }
+                    ],
+                    "samples": [
+                        "{Direction} now",
+                        "{Direction} {Duration} seconds",
+                        "move {Direction} for {Duration} seconds"
+                    ]
+                },
+                {
+                    "name": "SetSpeedIntent",
+                    "slots": [
+                        {
+                            "name": "Speed",
+                            "type": "AMAZON.NUMBER"
+                        }
+                    ],
+                    "samples": [
+                        "set speed {Speed} percent",
+                        "set {Speed} percent speed",
+                        "set speed to {Speed} percent"
+                    ]
+                },
+                {
+                    "name": "SetCommandIntent",
+                    "slots": [
+                        {
+                            "name": "Command",
+                            "type": "CommandType"
+                        }
+                    ],
+                    "samples": [
+                        "add {Command}",
+                        "play {Command}",
+                        "start {Command}",
+                        "move in a {Command}",
+                        "activate {Command}"
+                    ]
+                },
+                {
+                    "name": "DealCardsIntent",
+                    "slots": [
+                        {
+                            "name": "Numbers",
+                            "type": "AMAZON.NUMBER"
+                        },
+                        {
+                            "name": "Color",
+                            "type": "AMAZON.Color"
+                        }
+                    ],
+                    "samples": [
+                        "give {Color} {Numbers}",
+                        "deal {Numbers} for all",
+                        "give {Numbers} for all",
+                        "deal {Color} {Numbers}"
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "name": "DirectionType",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "brake"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "go backward"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "go forward"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "go right"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "go left"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "right"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "left"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "backwards"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "backward"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "forwards"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "forward"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "CommandType",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "players"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "user"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "users"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "replay"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "reset"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "player"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "poker"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "rummy"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "blackjack"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        "dialog": {
+            "intents": [
+                {
+                    "name": "DealCardsIntent",
+                    "confirmationRequired": false,
+                    "prompts": {},
+                    "slots": [
+                        {
+                            "name": "Numbers",
+                            "type": "AMAZON.NUMBER",
+                            "confirmationRequired": false,
+                            "elicitationRequired": false,
+                            "prompts": {}
+                        },
+                        {
+                            "name": "Color",
+                            "type": "AMAZON.Color",
+                            "confirmationRequired": false,
+                            "elicitationRequired": false,
+                            "prompts": {},
+                            "validations": [
+                                {
+                                    "type": "isInSet",
+                                    "prompt": "Slot.Validation.970050999853.4929962011.1340987686897",
+                                    "values": [
+                                        "Red",
+                                        "White",
+                                        "Yellow",
+                                        "Blue",
+                                        "Black",
+                                        "Green"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "delegationStrategy": "ALWAYS"
+        },
+        "prompts": [
+            {
+                "id": "Slot.Validation.970050999853.4929962011.1340987686897",
+                "variations": [
+                    {
+                        "type": "PlainText",
+                        "value": "Please use Red Green Yellow Blue Black and White for Color name"
+                    }
+                ]
+            }
+        ]
+    }
+}
