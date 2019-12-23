@@ -51,6 +51,15 @@ class Command(Enum):
     RESET_GAME = ['reset','replay']
     GAMES = ['rummy','poker','blackjack']
 
+
+class EventName(Enum):
+    """
+    The list of custom event name sent from this gadget
+    """
+    PLAYER = "Player"
+    COLOR = "Color"
+    SPEECH = "Speech"
+
 class MindstormsGadget(AlexaGadget):
     """
     A Mindstorms gadget that performs movement based on voice commands.
@@ -72,6 +81,7 @@ class MindstormsGadget(AlexaGadget):
         self.leftmargin = 0
         self.rigtmargin = 0
         self._init_reset()
+    
 
     def _init_reset(self):
         self.numCards = 2
@@ -79,6 +89,8 @@ class MindstormsGadget(AlexaGadget):
         self.game = 'blackjack'
         self.degreeStep = 180
         self.players = ["red","yellow"] #Default player
+        self._send_event(EventName.SPEECH, {'speechOut': "Restart game"})
+
 
     def on_connected(self, device_addr):
         """
@@ -118,11 +130,26 @@ class MindstormsGadget(AlexaGadget):
             if control_type == "dealcard":
                 # Expected params: [command] = Number of Cards
                 # Expected params: [player]
+                num = payload["command"]
                 player = payload["player"]
-                num = self.players.index(player)
-                self._dealcard(int(payload["command"]),num)               
+                speak = "Give "+ num + " card to " + player
+                if player == "all":
+                    if (self.numPlayers == 0):
+                        self.numPlayers = 2
+                    for i in  range(int(num)):
+                        for j in range(self.numPlayers):
+                           self._dealcard(1,j)                                   
+                else:
+                    try:
+                        num = self.players.index(player) 
+                        self._dealcard(int(payload["command"]),num)
+                    except ValueError:
+                        speak = "There is no user " + player 
+                print (speak,file=sys.stderr)   
+                self._send_event(EventName.SPEECH, {'speechOut': speak})
         except KeyError:
             print("Missing expected parameters: {}".format(directive), file=sys.stderr)
+ 
 
     def _dealcard(self, num, player):
         """
@@ -160,6 +187,14 @@ class MindstormsGadget(AlexaGadget):
             self.numCards = 7
             if (self.numPlayers == 2):
                 self.numCards = 10
+        speak = ""
+        for i in range(self.numPlayers):
+            print("Player : {}  Color : {}".format(i,self.players[i]), file=sys.stderr)
+            speak = speak + self.players[i]
+  
+        speak = "Start " + game + "with " + str(self.numPlayers) + "player " + speak
+        self._send_event(EventName.SPEECH, {'speechOut': speak})
+
 
         self._findboundary()    
         self.drive.on_to_position(SpeedPercent(10),self.leftmargin)    
@@ -168,8 +203,7 @@ class MindstormsGadget(AlexaGadget):
         for i in  range(self.numCards):
             for j in range(self.numPlayers):
                 self._dealcard(1,j)
-        for i in range(self.numPlayers):
-            print("Player : {}  Color : {}".format(i,self.players[i]), file=sys.stderr)
+       
             
     def _findboundary (self):
         "Move to left until sensor pressed "
@@ -185,7 +219,7 @@ class MindstormsGadget(AlexaGadget):
         self.drive.stop()
         "Get position + offset 45 for not to close limitation"
         self.leftmargin = self.drive.position
-        self.leftmargin = self.leftmargin + 45 
+        self.leftmargin = self.leftmargin + 60 
         print("Left position  : {}  ".format(self.leftmargin), file=sys.stderr)
         self.degreeStep = int(abs((self.leftmargin - self.rightmargin)/self.numPlayers))
         print("Degree steps  : {}  ".format(self.degreeStep), file=sys.stderr)
@@ -197,6 +231,7 @@ class MindstormsGadget(AlexaGadget):
         self.players.append(player.lower())
         print("Player {} color: {}".format(self.players[self.numPlayers],player), file=sys.stderr)
         self.numPlayers  += 1
+        self._send_event(EventName.PLAYER, {'player': player})
 
 
     def _move(self, direction, duration: int, speed: int, is_blocking=False):
@@ -216,6 +251,14 @@ class MindstormsGadget(AlexaGadget):
             self.drive.on_for_degrees(SpeedPercent(-10),90)
         if direction in Direction.STOP.value:
             self.drive.off()
+    def _send_event(self, name: EventName, payload):
+        """
+        Sends a custom event to trigger a sentry action.
+        :param name: the name of the custom event
+        :param payload: the sentry JSON payload
+        """
+        self.send_custom_event('Custom.Mindstorms.Gadget', name.value, payload)
+
 
     def _activate(self, command, speed=50):
         """
@@ -235,6 +278,7 @@ class MindstormsGadget(AlexaGadget):
 
         if command in Command.ADD_CMD.value:
             self._addUser()
+            
 
   
   
