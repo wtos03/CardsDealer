@@ -80,9 +80,9 @@
                         }
                     ],
                     "samples": [
+                        "give {Numbers} cards to {Color}",
+                        "give {Numbers} to {Color}",
                         "give {Color} {Numbers}",
-                        "deal {Numbers} for all",
-                        "give {Numbers} for all",
                         "deal {Color} {Numbers}"
                     ]
                 }
@@ -226,6 +226,7 @@
                                     "prompt": "Slot.Validation.970050999853.4929962011.1340987686897",
                                     "values": [
                                         "Red",
+                                        "all",
                                         "White",
                                         "Yellow",
                                         "Blue",
@@ -246,7 +247,7 @@
                 "variations": [
                     {
                         "type": "PlainText",
-                        "value": "Please use Red Green Yellow Blue Black and White for Color name"
+                        "value": "Please use Red Green Yellow Blue Black and White for Color name or all for all"
                     }
                 ]
             }
