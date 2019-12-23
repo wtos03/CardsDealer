@@ -17,6 +17,9 @@ const Alexa = require('ask-sdk-core');
 const Util = require('./util');
 const Common = require('./common');
 
+// The audio tag to include background music
+const BG_MUSIC = '<audio src="soundbank://soundlibrary/ui/gameshow/amzn_ui_sfx_gameshow_waiting_loop_30s_01"/>';
+
 // The namespace of the custom directive to be sent by this skill
 const NAMESPACE = 'Custom.Mindstorms.Gadget';
 
@@ -42,10 +45,21 @@ const LaunchRequestHandler = {
         let endpointId = apiResponse.endpoints[0].endpointId || [];
         Util.putSessionAttribute(handlerInput, 'endpointId', endpointId);
 
-        return handlerInput.responseBuilder
+        // Set skill duration to 5 minutes (ten 30-seconds interval)
+        Util.putSessionAttribute(handlerInput, 'duration', 10);
+
+        
+        // Set the token to track the event handler
+        const token = handlerInput.requestEnvelope.request.requestId;
+         Util.putSessionAttribute(handlerInput, 'token', token);
+
+       return handlerInput.responseBuilder
             .speak("Welcome, you can start issuing commands")
             .reprompt("Awaiting commands")
             .getResponse();
+          
+ 
+   
     }
 };
 
@@ -130,7 +144,7 @@ const SetCommandIntentHandler = {
         const attributesManager = handlerInput.attributesManager;
         let endpointId = attributesManager.getSessionAttributes().endpointId || [];
         let speed = attributesManager.getSessionAttributes().speed || "50";
-
+        let token = attributesManager.getSessionAttributes().token;
         // Construct the directive with the payload containing the move parameters
         let directive = Util.build(endpointId, NAMESPACE, NAME_CONTROL,
             {
@@ -140,8 +154,9 @@ const SetCommandIntentHandler = {
             });
 
         return handlerInput.responseBuilder
-            .speak(`command ${command} activated`)
-            .reprompt("awaiting command")
+//          .speak(`command ${command} activated   `)
+            .addDirective(Util.buildStartEventHandler(token,60000, {}))
+//          .reprompt("awaiting command")
             .addDirective(directive)
             .getResponse();
     }
@@ -170,6 +185,8 @@ const DealCardsIntentHandler = {
         }
         const attributesManager = handlerInput.attributesManager;
         let endpointId = attributesManager.getSessionAttributes().endpointId || [];
+        let token = attributesManager.getSessionAttributes().token;
+
 
         // Construct the directive with the payload containing the move parameters
         let directive = Util.build(endpointId, NAMESPACE, NAME_CONTROL,
@@ -180,7 +197,8 @@ const DealCardsIntentHandler = {
             });
 
         return handlerInput.responseBuilder
-            .speak(`Give  ${num} cards to ${player} `)
+    //        .speak(`Give  ${num} cards to ${player} `)
+            .addDirective(Util.buildStartEventHandler(token,60000, {}))
             .reprompt("Anyone want more")
             .addDirective(directive)
             .getResponse();
@@ -188,6 +206,97 @@ const DealCardsIntentHandler = {
 };
 
 
+const EventsReceivedRequestHandler = {
+    // Checks for a valid token and endpoint.
+    canHandle(handlerInput) {
+        let { request } = handlerInput.requestEnvelope;
+        console.log('Request type: ' + Alexa.getRequestType(handlerInput.requestEnvelope));
+        if (request.type !== 'CustomInterfaceController.EventsReceived') return false;
+
+        const attributesManager = handlerInput.attributesManager;
+        let sessionAttributes = attributesManager.getSessionAttributes();
+        let customEvent = request.events[0];
+
+        // Validate event token
+        if (sessionAttributes.token !== request.token) {
+            console.log("Event token doesn't match. Ignoring this event");
+            return false;
+        }
+
+        // Validate endpoint
+        let requestEndpoint = customEvent.endpoint.endpointId;
+        if (requestEndpoint !== sessionAttributes.endpointId) {
+            console.log("Event endpoint id doesn't match. Ignoring this event");
+            return false;
+        }
+        return true;
+    },
+    handle(handlerInput) {
+
+        console.log("== Received Custom Event ==");
+        let customEvent = handlerInput.requestEnvelope.request.events[0];
+        let payload = customEvent.payload;
+        let name = customEvent.header.name;
+
+        let speechOutput;
+        if (name === 'Player') {
+            let player = payload.player;
+            let speechOutput = "Add one user color is " +player;
+            return handlerInput.responseBuilder
+                .speak(speechOutput, "REPLACE_ALL")
+                .withShouldEndSession(false)
+                .getResponse();
+        } else if (name === 'Color') {
+            if ('green' in payload) {
+                speechOutput = "Color green event";
+            }
+
+        } else if (name === 'Speech') {
+            speechOutput = payload.speechOut;
+
+        } else {
+            speechOutput = "Event not recognized. Awaiting new command.";
+        }
+        return handlerInput.responseBuilder
+            .speak(speechOutput, "REPLACE_ALL")
+            .getResponse();
+    }
+};
+
+/*
+const ExpiredRequestHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'CustomInterfaceController.Expired'
+    },
+    handle(handlerInput) {
+        console.log("== Custom Event Expiration Input ==");
+
+        // Set the token to track the event handler
+        const token = handlerInput.requestEnvelope.request.requestId;
+        Util.putSessionAttribute(handlerInput, 'token', token);
+
+        const attributesManager = handlerInput.attributesManager;
+        let duration = attributesManager.getSessionAttributes().duration || 0;
+        if (duration > 0) {
+            Util.putSessionAttribute(handlerInput, 'duration', --duration);
+
+            // Extends skill session
+            const speechOutput = `${duration} minutes remaining.`;
+            return handlerInput.responseBuilder
+                .addDirective(Util.buildStartEventHandler(token, 60000, {}))
+                .speak(speechOutput)
+                .getResponse();
+        }
+        else {
+            // End skill session
+            return handlerInput.responseBuilder
+                .speak("Skill duration expired. Goodbye.")
+                .withShouldEndSession(true)
+                .getResponse();
+        }
+    }
+};
+*/
 
 // The SkillBuilder acts as the entry point for your skill, routing all request and response
 // payloads to the handlers above. Make sure any new handlers or interceptors you've
@@ -199,6 +308,8 @@ exports.handler = Alexa.SkillBuilders.custom()
         SetCommandIntentHandler,
         MoveIntentHandler,
         DealCardsIntentHandler,
+        EventsReceivedRequestHandler,
+  //      ExpiredRequestHandler,
         Common.HelpIntentHandler,
         Common.CancelAndStopIntentHandler,
         Common.SessionEndedRequestHandler,
@@ -209,3 +320,4 @@ exports.handler = Alexa.SkillBuilders.custom()
         Common.ErrorHandler,
     )
     .lambda();
+    

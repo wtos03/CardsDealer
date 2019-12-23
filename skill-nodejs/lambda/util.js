@@ -12,6 +12,62 @@
 'use strict';
 
 const Https = require('https');
+const AWS = require('aws-sdk');
+const Escape = require('lodash/escape');
+
+const s3SigV4Client = new AWS.S3({
+    signatureVersion: 'v4'
+});
+
+/**
+ * Get the authenticated URL to access the S3 Object. This URL expires after 60 seconds.
+ * @param s3ObjectKey - the S3 object key
+ * @returns {string} the pre-signed S3 URL
+ */
+exports.getS3PreSignedUrl = function getS3PreSignedUrl(s3ObjectKey) {
+
+    const bucketName = process.env.S3_PERSISTENCE_BUCKET;
+    return Escape(s3SigV4Client.getSignedUrl('getObject', {
+        Bucket: bucketName,
+        Key: s3ObjectKey,
+        Expires: 60 // the Expires is capped for 1 minute
+    }));
+};
+
+/**
+ * Builds a directive to start the EventHandler.
+ * @param token - a unique identifier to track the event handler
+ * @param {number} timeout - the duration to wait before sending back the expiration
+ * payload to the skill.
+ * @param payload - the expiration json payload
+ * @see {@link https://developer.amazon.com/docs/alexa-gadgets-toolkit/receive-custom-event-from-gadget.html#start}
+ */
+exports.buildStartEventHandler = function (token, timeout = 30000, payload)  {
+    return {
+        type: "CustomInterfaceController.StartEventHandler",
+        token: token,
+        expiration : {
+            durationInMilliseconds: timeout,
+            expirationPayload: payload
+        }
+    };
+};
+
+/**
+ *
+ * Builds a directive to stops the active event handler.
+ * The event handler is identified by the cached token in the session attribute.
+ * @param {string} handlerInput - the context from Alexa Service
+ * @see {@link https://developer.amazon.com/docs/alexa-gadgets-toolkit/receive-custom-event-from-gadget.html#stop}
+ */
+exports.buildStopEventHandlerDirective = function (handlerInput) {
+
+    let token = handlerInput.attributesManager.getSessionAttributes().token || '';
+    return {
+        "type": "CustomInterfaceController.StopEventHandler",
+        "token": token
+    }
+};
 
 /**
  * Build a custom directive payload to the gadget with the specified endpointId
@@ -50,6 +106,7 @@ exports.putSessionAttribute = function(handlerInput, key, value) {
     sessionAttributes[key] = value;
     attributesManager.setSessionAttributes(sessionAttributes);
 };
+
 
 /**
  * To get a list of all the gadgets that meet these conditions,
